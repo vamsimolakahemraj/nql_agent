@@ -1,6 +1,7 @@
 import re
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import json
+from datetime import datetime
 
 class NQLEngine:
     """
@@ -8,6 +9,8 @@ class NQLEngine:
     """
     
     def __init__(self):
+        self.conversation_history = []
+        self.context = {}
         self.table_aliases = {
             'users': 'u',
             'orders': 'o', 
@@ -19,12 +22,22 @@ class NQLEngine:
         self.column_mappings = {
             'name': ['name', 'first_name', 'last_name', 'product_name', 'category_name'],
             'email': ['email', 'email_address'],
-            'price': ['price', 'cost', 'amount', 'total'],
-            'date': ['created_at', 'updated_at', 'order_date', 'date'],
-            'id': ['id', 'user_id', 'order_id', 'product_id', 'customer_id'],
-            'status': ['status', 'order_status', 'user_status'],
-            'quantity': ['quantity', 'qty', 'amount'],
-            'description': ['description', 'desc', 'details']
+            'price': ['price', 'cost', 'amount', 'total', 'total_amount', 'unit_price'],
+            'date': ['created_at', 'updated_at', 'order_date', 'date', 'registration_date', 'last_login'],
+            'id': ['id', 'user_id', 'order_id', 'product_id', 'customer_id', 'category_id'],
+            'status': ['status', 'order_status', 'user_status', 'payment_status', 'is_active'],
+            'quantity': ['quantity', 'qty', 'amount', 'stock_quantity'],
+            'description': ['description', 'desc', 'details', 'comment'],
+            'rating': ['rating', 'review_rating'],
+            'city': ['city', 'location'],
+            'state': ['state', 'province'],
+            'country': ['country'],
+            'brand': ['brand', 'manufacturer'],
+            'category': ['category', 'category_name'],
+            'age': ['age'],
+            'gender': ['gender'],
+            'phone': ['phone', 'phone_number'],
+            'address': ['address', 'shipping_address', 'billing_address']
         }
         
         self.aggregate_functions = {
@@ -51,21 +64,49 @@ class NQLEngine:
             'ends with': 'LIKE'
         }
 
-    def nql_to_sql(self, nql_query: str) -> str:
+    def nql_to_sql(self, nql_query: str, conversation_context: Optional[Dict] = None) -> Dict[str, Any]:
         """
-        Convert natural language query to SQL
+        Convert natural language query to SQL with conversational context
         """
         nql_query = nql_query.lower().strip()
         
+        # Store conversation context
+        if conversation_context:
+            self.context.update(conversation_context)
+        
+        # Add to conversation history
+        self.conversation_history.append({
+            'timestamp': datetime.now().isoformat(),
+            'query': nql_query,
+            'context': self.context.copy()
+        })
+        
+        # Analyze query intent and provide intelligent responses
+        response = self._analyze_query_intent(nql_query)
+        
         # Handle different query types
         if self._is_select_query(nql_query):
-            return self._process_select_query(nql_query)
+            sql_query = self._process_select_query(nql_query)
         elif self._is_aggregate_query(nql_query):
-            return self._process_aggregate_query(nql_query)
+            sql_query = self._process_aggregate_query(nql_query)
         elif self._is_filter_query(nql_query):
-            return self._process_filter_query(nql_query)
+            sql_query = self._process_filter_query(nql_query)
         else:
-            return self._process_general_query(nql_query)
+            sql_query = self._process_general_query(nql_query)
+        
+        # Generate follow-up suggestions
+        suggestions = self._generate_suggestions(nql_query, sql_query)
+        
+        # Provide query explanation
+        explanation = self._explain_query(nql_query, sql_query)
+        
+        return {
+            'sql_query': sql_query,
+            'explanation': explanation,
+            'suggestions': suggestions,
+            'context': self.context,
+            'response': response
+        }
 
     def _is_select_query(self, query: str) -> bool:
         """Check if query is asking to select/show data"""
@@ -203,3 +244,122 @@ class NQLEngine:
                     if col_name in query:
                         return col_name
         return '*'
+
+    def _analyze_query_intent(self, query: str) -> str:
+        """Analyze query intent and provide intelligent response"""
+        if 'help' in query or 'what can' in query:
+            return "I can help you query your database using natural language! Try asking me to show data, count records, or find specific information."
+        
+        if 'explain' in query or 'how' in query:
+            return "I'll explain how your query works and what data it will return."
+        
+        if 'show' in query or 'display' in query:
+            return "I'll show you the requested data from the database."
+        
+        if 'count' in query or 'how many' in query:
+            return "I'll count the records that match your criteria."
+        
+        if 'find' in query or 'search' in query:
+            return "I'll search for records that match your criteria."
+        
+        return "I'll process your query and show you the results."
+
+    def _generate_suggestions(self, query: str, sql_query: str) -> List[str]:
+        """Generate intelligent follow-up suggestions based on the query"""
+        suggestions = []
+        
+        # Context-aware suggestions for large dataset
+        if 'users' in query or 'user' in query:
+            suggestions.extend([
+                "Show users by city and state",
+                "Find users with premium subscriptions",
+                "Count users by age group",
+                "Show users who haven't logged in recently",
+                "Find users from specific cities"
+            ])
+        
+        if 'products' in query or 'product' in query:
+            suggestions.extend([
+                "Show products by brand and category",
+                "Find products with low stock",
+                "Show average rating by category",
+                "Find the most expensive products",
+                "Show products with high review counts"
+            ])
+        
+        if 'orders' in query or 'order' in query:
+            suggestions.extend([
+                "Show orders by status and payment method",
+                "Find orders from the last 30 days",
+                "Show total revenue by month",
+                "Find orders with high values",
+                "Show order trends by city"
+            ])
+        
+        if 'reviews' in query or 'review' in query:
+            suggestions.extend([
+                "Show reviews by rating",
+                "Find verified reviews",
+                "Show most helpful reviews",
+                "Find reviews for specific products"
+            ])
+        
+        if 'count' in query or 'how many' in query:
+            suggestions.extend([
+                "Show breakdown by category",
+                "Find trends over time",
+                "Compare different segments"
+            ])
+        
+        if 'average' in query or 'avg' in query:
+            suggestions.extend([
+                "Show by different categories",
+                "Find outliers",
+                "Compare with median values"
+            ])
+        
+        # Advanced analytical suggestions
+        suggestions.extend([
+            "Show data distribution and patterns",
+            "Find correlations between different metrics",
+            "Identify top performers and trends",
+            "Analyze customer behavior patterns",
+            "Show business insights and KPIs"
+        ])
+        
+        return suggestions[:6]  # Return top 6 suggestions
+
+    def _explain_query(self, nql_query: str, sql_query: str) -> str:
+        """Explain what the query does in plain English"""
+        explanation = f"I translated your request '{nql_query}' into the SQL query: {sql_query}\n\n"
+        
+        if 'SELECT *' in sql_query:
+            explanation += "This query retrieves all columns from the specified table."
+        elif 'COUNT' in sql_query:
+            explanation += "This query counts the number of records that match your criteria."
+        elif 'WHERE' in sql_query:
+            explanation += "This query filters the data based on your specified conditions."
+        elif 'AVG' in sql_query or 'SUM' in sql_query or 'MAX' in sql_query or 'MIN' in sql_query:
+            explanation += "This query performs a mathematical calculation on the data."
+        
+        return explanation
+
+    def get_conversation_history(self) -> List[Dict]:
+        """Get the conversation history"""
+        return self.conversation_history
+
+    def clear_context(self):
+        """Clear conversation context"""
+        self.context = {}
+        self.conversation_history = []
+
+    def get_context_summary(self) -> str:
+        """Get a summary of the current context"""
+        if not self.context:
+            return "No specific context set. I'm ready to help you explore your database!"
+        
+        summary = "Current context:\n"
+        for key, value in self.context.items():
+            summary += f"- {key}: {value}\n"
+        
+        return summary

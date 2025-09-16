@@ -226,13 +226,133 @@
             color: #6c757d;
             font-size: 0.9em;
         }
+
+        .conversation-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .explanation {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+
+        .suggestions {
+            background: #f3e5f5;
+            border: 1px solid #e1bee7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .suggestion-item {
+            background: white;
+            border: 1px solid #e1bee7;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .suggestion-item:hover {
+            background: #f3e5f5;
+        }
+
+        .response {
+            background: #e8f5e8;
+            border: 1px solid #c8e6c9;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-style: italic;
+        }
+
+        .conversation-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .control-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .control-button:hover {
+            background: #5a6268;
+        }
+
+        .reasoning-panel {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .reasoning-step {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #4facfe;
+        }
+
+        .reasoning-phase {
+            font-weight: bold;
+            color: #4facfe;
+            margin-bottom: 5px;
+        }
+
+        .reasoning-description {
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .intent-analysis {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .query-plan {
+            background: #f3e5f5;
+            border: 1px solid #e1bee7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .react-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 NQL Agent</h1>
-            <p>Query your database using natural language</p>
+            <h1>🤖 Agentic NQL Engine</h1>
+            <p>Iterative reasoning, tool selection, and multi-step problem solving</p>
         </div>
 
         <div class="main-content">
@@ -251,6 +371,20 @@
                 <div class="example-query" onclick="setQuery('Show users with email containing john')">Show users with email containing john</div>
                 <div class="example-query" onclick="setQuery('Find completed orders')">Find completed orders</div>
                 <div class="example-query" onclick="setQuery('Show average price of products')">Show average price of products</div>
+            </div>
+
+            <div class="conversation-panel">
+                <div class="react-header">
+                    <h3>🔌 Real MCP Integration - CrystalDBA Postgres MCP Pro</h3>
+                    <p>True MCP server integration with industrial-strength database tools</p>
+                </div>
+                <div class="conversation-controls">
+                    <button class="control-button" onclick="clearConversation()">Clear Conversation</button>
+                    <button class="control-button" onclick="showContext()">Show Context</button>
+                    <button class="control-button" onclick="showHistory()">Show History</button>
+                    <button class="control-button" onclick="showMCPStatus()">MCP Status</button>
+                </div>
+                <div id="contextDisplay" style="display: none;"></div>
             </div>
 
             <div class="query-section">
@@ -367,11 +501,42 @@
                     sqlQuery.textContent = data.sql_query;
                     sqlQuery.style.display = 'block';
                     
+                    // Display agentic reasoning chain
+                    if (data.reasoning_chain && data.reasoning_chain.length > 0) {
+                        displayAgenticReasoning(data.reasoning_chain, data.iteration_count, data.agent_state);
+                    }
+
+                    // Display tool results
+                    if (data.tool_results && Object.keys(data.tool_results).length > 0) {
+                        displayToolResults(data.tool_results);
+                    }
+                    
+                    // Show conversational response
+                    if (data.response) {
+                        const responseDiv = document.createElement('div');
+                        responseDiv.className = 'response';
+                        responseDiv.innerHTML = `🤖 ${data.response}`;
+                        resultsContent.appendChild(responseDiv);
+                    }
+                    
+                    // Show explanation
+                    if (data.explanation) {
+                        const explanationDiv = document.createElement('div');
+                        explanationDiv.className = 'explanation';
+                        explanationDiv.innerHTML = `💡 ${data.explanation}`;
+                        resultsContent.appendChild(explanationDiv);
+                    }
+                    
                     // Show results
                     if (data.results && data.results.length > 0) {
                         displayResults(data.results);
                     } else {
-                        resultsContent.innerHTML = '<div class="loading">No results found</div>';
+                        resultsContent.innerHTML += '<div class="loading">No results found</div>';
+                    }
+                    
+                    // Show suggestions
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        displaySuggestions(data.suggestions);
                     }
                     
                     // Update stats
@@ -423,6 +588,231 @@
                 executeQuery();
             }
         });
+
+        function displaySuggestions(suggestions) {
+            const suggestionsDiv = document.createElement('div');
+            suggestionsDiv.className = 'suggestions';
+            suggestionsDiv.innerHTML = '<h4>💡 Try these follow-up questions:</h4>';
+            
+            suggestions.forEach(suggestion => {
+                const suggestionItem = document.createElement('div');
+                suggestionItem.className = 'suggestion-item';
+                suggestionItem.textContent = suggestion;
+                suggestionItem.onclick = () => setQuery(suggestion);
+                suggestionsDiv.appendChild(suggestionItem);
+            });
+            
+            document.getElementById('resultsContent').appendChild(suggestionsDiv);
+        }
+
+        async function clearConversation() {
+            try {
+                const response = await fetch('/api/conversation/clear', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                alert('Conversation cleared successfully!');
+            } catch (error) {
+                alert('Error clearing conversation: ' + error.message);
+            }
+        }
+
+        async function showContext() {
+            try {
+                const response = await fetch('/api/conversation/context');
+                const data = await response.json();
+                const contextDisplay = document.getElementById('contextDisplay');
+                contextDisplay.innerHTML = `<div class="explanation">${data.context}</div>`;
+                contextDisplay.style.display = contextDisplay.style.display === 'none' ? 'block' : 'none';
+            } catch (error) {
+                alert('Error getting context: ' + error.message);
+            }
+        }
+
+        async function showHistory() {
+            try {
+                const response = await fetch('/api/conversation/history');
+                const data = await response.json();
+                const contextDisplay = document.getElementById('contextDisplay');
+                
+                let historyHtml = '<div class="explanation"><h4>📜 Conversation History:</h4>';
+                data.history.forEach((entry, index) => {
+                    historyHtml += `<div style="margin: 10px 0; padding: 10px; background: white; border-radius: 6px;">
+                        <strong>${index + 1}.</strong> ${entry.query}
+                        <br><small>${new Date(entry.timestamp).toLocaleString()}</small>
+                    </div>`;
+                });
+                historyHtml += '</div>';
+                
+                contextDisplay.innerHTML = historyHtml;
+                contextDisplay.style.display = contextDisplay.style.display === 'none' ? 'block' : 'none';
+            } catch (error) {
+                alert('Error getting history: ' + error.message);
+            }
+        }
+
+        function displayAgenticReasoning(reasoningChain, iterationCount, agentState) {
+            const resultsContent = document.getElementById('resultsContent');
+            
+            const reasoningPanel = document.createElement('div');
+            reasoningPanel.className = 'reasoning-panel';
+            reasoningPanel.innerHTML = `
+                <h4>🤖 Agentic Reasoning Chain</h4>
+                <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                    <strong>Iterations:</strong> ${iterationCount} | 
+                    <strong>Current State:</strong> ${agentState} | 
+                    <strong>Total Steps:</strong> ${reasoningChain.length}
+                </div>
+            `;
+            
+            // Group steps by iteration
+            const stepsByIteration = {};
+            reasoningChain.forEach(step => {
+                const iter = step.iteration || 1;
+                if (!stepsByIteration[iter]) {
+                    stepsByIteration[iter] = [];
+                }
+                stepsByIteration[iter].push(step);
+            });
+            
+            // Display each iteration
+            Object.keys(stepsByIteration).forEach(iteration => {
+                const iterationDiv = document.createElement('div');
+                iterationDiv.style.marginBottom = '20px';
+                iterationDiv.style.border = '1px solid #dee2e6';
+                iterationDiv.style.borderRadius = '8px';
+                iterationDiv.style.padding = '15px';
+                iterationDiv.style.backgroundColor = '#f8f9fa';
+                
+                iterationDiv.innerHTML = `<h5 style="margin: 0 0 10px 0; color: #495057;">🔄 Iteration ${iteration}</h5>`;
+                
+                stepsByIteration[iteration].forEach((step, index) => {
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = 'reasoning-step';
+                    stepDiv.style.marginBottom = '8px';
+                    
+                    const phaseDiv = document.createElement('div');
+                    phaseDiv.className = 'reasoning-phase';
+                    phaseDiv.textContent = `${step.phase}`;
+                    
+                    const descDiv = document.createElement('div');
+                    descDiv.className = 'reasoning-description';
+                    descDiv.textContent = step.description;
+                    
+                    stepDiv.appendChild(phaseDiv);
+                    stepDiv.appendChild(descDiv);
+                    iterationDiv.appendChild(stepDiv);
+                });
+                
+                reasoningPanel.appendChild(iterationDiv);
+            });
+            
+            resultsContent.appendChild(reasoningPanel);
+        }
+
+        function displayIntentAnalysis(intentAnalysis) {
+            const resultsContent = document.getElementById('resultsContent');
+            
+            const intentDiv = document.createElement('div');
+            intentDiv.className = 'intent-analysis';
+            intentDiv.innerHTML = `
+                <h4>📋 Intent Analysis</h4>
+                <p><strong>Primary Action:</strong> ${intentAnalysis.primary_action || 'N/A'}</p>
+                <p><strong>Target Entities:</strong> ${(intentAnalysis.target_entities || []).join(', ') || 'N/A'}</p>
+                <p><strong>Complexity:</strong> ${intentAnalysis.complexity || 'N/A'}</p>
+                <p><strong>Filters:</strong> ${intentAnalysis.filters ? intentAnalysis.filters.length : 0}</p>
+                <p><strong>Aggregations:</strong> ${(intentAnalysis.aggregations || []).join(', ') || 'None'}</p>
+            `;
+            
+            resultsContent.appendChild(intentDiv);
+        }
+
+        function displayToolResults(toolResults) {
+            const resultsContent = document.getElementById('resultsContent');
+            
+            const toolPanel = document.createElement('div');
+            toolPanel.className = 'query-plan';
+            toolPanel.innerHTML = '<h4>🔧 Tool Execution Results</h4>';
+            
+            Object.keys(toolResults).forEach(toolName => {
+                const toolResult = toolResults[toolName];
+                const toolDiv = document.createElement('div');
+                toolDiv.style.marginBottom = '15px';
+                toolDiv.style.padding = '10px';
+                toolDiv.style.border = '1px solid #e1bee7';
+                toolDiv.style.borderRadius = '6px';
+                toolDiv.style.backgroundColor = '#fafafa';
+                
+                const status = toolResult.status || 'unknown';
+                const statusIcon = status === 'completed' ? '✅' : status === 'failed' ? '❌' : '⏳';
+                
+                toolDiv.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 5px;">
+                        ${statusIcon} ${toolName.replace('_', ' ').toUpperCase()}
+                    </div>
+                    <div style="font-size: 14px; color: #666;">
+                        ${JSON.stringify(toolResult, null, 2).substring(0, 200)}...
+                    </div>
+                `;
+                
+                toolPanel.appendChild(toolDiv);
+            });
+            
+            resultsContent.appendChild(toolPanel);
+        }
+
+        async function showMCPStatus() {
+            try {
+                const response = await fetch('/api/mcp/status');
+                const data = await response.json();
+                const contextDisplay = document.getElementById('contextDisplay');
+                
+                let mcpHtml = '<div class="explanation"><h4>🔌 MCP Server Status</h4>';
+                
+                if (data.mcp_enabled) {
+                    mcpHtml += `
+                        <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 10px; border-radius: 6px; margin: 10px 0;">
+                            <strong>✅ ${data.server_type || 'MCP Server'} Connected</strong>
+                        </div>
+                        <p><strong>Status:</strong> ${data.status}</p>
+                        <p><strong>Server Type:</strong> ${data.server_type || 'Unknown'}</p>
+                        <p><strong>Available Tools:</strong> ${data.capabilities.tools.count}</p>
+                        <p><strong>Available Resources:</strong> ${data.capabilities.resources.count}</p>
+                        <div style="margin-top: 10px;">
+                            <strong>Real MCP Tools:</strong>
+                            <ul>
+                                ${data.capabilities.tools.names.map(tool => `<li>🔧 ${tool}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; margin: 10px 0;">
+                            <strong>🚀 Industrial-Strength Features:</strong>
+                            <ul style="margin: 5px 0;">
+                                <li>Database Health Analysis</li>
+                                <li>Index Tuning & Optimization</li>
+                                <li>Query Plan Analysis</li>
+                                <li>Performance Monitoring</li>
+                                <li>Safe SQL Execution</li>
+                            </ul>
+                        </div>
+                    `;
+                } else {
+                    mcpHtml += `
+                        <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; border-radius: 6px; margin: 10px 0;">
+                            <strong>❌ MCP Server Disconnected</strong>
+                        </div>
+                        <p><strong>Status:</strong> ${data.status}</p>
+                        <p><strong>Message:</strong> ${data.message || 'MCP server not available'}</p>
+                    `;
+                }
+                
+                mcpHtml += '</div>';
+                
+                contextDisplay.innerHTML = mcpHtml;
+                contextDisplay.style.display = contextDisplay.style.display === 'none' ? 'block' : 'none';
+            } catch (error) {
+                alert('Error getting MCP status: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>
