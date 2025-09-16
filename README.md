@@ -295,4 +295,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ for the developer community**
 
+# Third-party Licenses
+- FastAPI (MIT)
+- Uvicorn (BSD)
+- Psycopg2-binary (LGPL)
+- Streamlit (Apache 2.0)
+This project uses open-source libraries under MIT, BSD, Apache 2.0, and LGPL licenses. See NOTICE.md for details.
+
 *Star this repository if you find it helpful!*
