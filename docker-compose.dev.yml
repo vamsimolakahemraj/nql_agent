@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  nql-agent:
+    volumes:
+      - ./app:/app/app
+      - ./static:/app/static
+    environment:
+      - PYTHONPATH=/app
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
