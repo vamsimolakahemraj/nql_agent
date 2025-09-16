@@ -263,10 +263,6 @@ curl http://localhost:8000/api/schema
 - Include docstrings for new classes/methods
 - Test your changes with various query patterns
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## 🙏 Acknowledgments
 
 - FastAPI for the excellent web framework
